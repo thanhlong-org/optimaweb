@@ -864,6 +864,241 @@
       font-size: 1.5rem; cursor: pointer; color: var(--muted);
     }
 
+    /* ─── AI CHAT WIDGET ─── */
+    #chat-widget {
+      position: fixed; bottom: 28px; right: 28px; z-index: 1000;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 16px;
+    }
+
+    /* Toggle button */
+    #chat-toggle {
+      width: 58px; height: 58px; border-radius: 50%;
+      background: var(--grad);
+      border: none; cursor: none;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 32px rgba(37,99,235,0.45);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+      position: relative; overflow: hidden; flex-shrink: 0;
+    }
+    #chat-toggle::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transform: scale(0); transition: transform 0.4s ease;
+    }
+    #chat-toggle:hover { transform: scale(1.1); box-shadow: 0 12px 40px rgba(37,99,235,0.6); }
+    #chat-toggle:hover::before { transform: scale(1); }
+    #chat-toggle.open { transform: rotate(45deg) scale(1.05); }
+    #chat-toggle svg { transition: all 0.3s ease; }
+    .ct-icon-chat, .ct-icon-close { position: absolute; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .ct-icon-close { opacity: 0; transform: rotate(-45deg) scale(0.5); }
+    #chat-toggle.open .ct-icon-chat  { opacity: 0; transform: rotate(45deg) scale(0.5); }
+    #chat-toggle.open .ct-icon-close { opacity: 1; transform: rotate(0) scale(1); }
+
+    /* Notification badge */
+    #chat-badge {
+      position: absolute; top: -3px; right: -3px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ef4444; border: 2px solid var(--bg);
+      font-size: 0.65rem; font-weight: 700; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      animation: badgePulse 2s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* Chat window */
+    #chat-window {
+      width: 360px;
+      background: rgba(10,16,30,0.92);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(56,189,248,0.15);
+      border-radius: 20px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+      overflow: hidden;
+      transform-origin: bottom right;
+      transform: scale(0.85) translateY(16px);
+      opacity: 0; pointer-events: none;
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;
+      display: flex; flex-direction: column; max-height: 540px;
+    }
+    #chat-window.open {
+      transform: scale(1) translateY(0);
+      opacity: 1; pointer-events: all;
+    }
+
+    /* Header */
+    .chat-header {
+      padding: 18px 20px 16px;
+      background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.15));
+      border-bottom: 1px solid rgba(56,189,248,0.12);
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .chat-avatar {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: var(--grad);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; position: relative;
+    }
+    .chat-avatar::after {
+      content: ''; position: absolute; bottom: 1px; right: 1px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #22c55e; border: 2px solid rgba(10,16,30,0.9);
+    }
+    .chat-header-info { flex: 1; }
+    .chat-header-name { font-size: 0.92rem; font-weight: 700; color: #e8f0f8; }
+    .chat-header-status {
+      font-size: 0.72rem; color: #22c55e; font-weight: 500;
+      display: flex; align-items: center; gap: 4px; margin-top: 2px;
+    }
+    .chat-header-status::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%; background: #22c55e;
+      animation: statusPulse 2s ease-in-out infinite;
+    }
+    @keyframes statusPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .chat-header-close {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.08); color: #7a8fa8;
+      display: flex; align-items: center; justify-content: center;
+      cursor: none; font-size: 0.9rem; transition: all 0.2s;
+    }
+    .chat-header-close:hover { background: rgba(255,255,255,0.15); color: #e8f0f8; }
+
+    /* Messages area */
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+      scrollbar-width: thin; scrollbar-color: rgba(56,189,248,0.2) transparent;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.2); border-radius: 2px; }
+
+    /* Message bubbles */
+    .msg { display: flex; gap: 8px; align-items: flex-end; animation: msgIn 0.3s ease both; }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--grad); display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+    }
+    .msg.user .msg-avatar { background: rgba(56,189,248,0.2); }
+    .msg-bubble {
+      max-width: 240px; padding: 10px 14px; border-radius: 16px;
+      font-size: 0.85rem; line-height: 1.55; word-break: break-word;
+    }
+    .msg.bot .msg-bubble {
+      background: rgba(255,255,255,0.07); color: #d4e0f0;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .msg.user .msg-bubble {
+      background: var(--grad); color: #fff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+    }
+    .msg-time { font-size: 0.65rem; color: rgba(255,255,255,0.25); margin-top: 4px; display: block; }
+    .msg.user .msg-time { text-align: right; }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    .typing-dots {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; border-bottom-left-radius: 4px;
+      padding: 12px 16px; display: flex; gap: 5px; align-items: center;
+    }
+    .typing-dots span {
+      width: 7px; height: 7px; border-radius: 50%; background: #7a8fa8;
+      animation: typingDot 1.2s ease-in-out infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDot {
+      0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* Quick replies */
+    .quick-replies {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 0 16px 4px; flex-shrink: 0;
+    }
+    .qr-btn {
+      padding: 6px 14px; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+      border: 1px solid rgba(56,189,248,0.3); background: rgba(37,99,235,0.1);
+      color: #7dd3fc; cursor: none; transition: all 0.2s; white-space: nowrap;
+    }
+    .qr-btn:hover { background: rgba(37,99,235,0.25); border-color: rgba(56,189,248,0.6); color: #fff; }
+
+    /* Input area */
+    .chat-input-area {
+      padding: 12px 16px 16px; border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; gap: 10px; align-items: center; flex-shrink: 0;
+    }
+    #chat-input {
+      flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px; padding: 10px 16px; color: #e8f0f8;
+      font-size: 0.85rem; font-family: inherit; outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #chat-input::placeholder { color: #4a5f7a; }
+    #chat-input:focus { border-color: rgba(56,189,248,0.4); background: rgba(255,255,255,0.1); }
+    #chat-send {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: var(--grad); border: none; cursor: none;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    #chat-send:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(37,99,235,0.5); }
+    #chat-send:active { transform: scale(0.95); }
+    #chat-send svg { width: 16px; height: 16px; color: #fff; }
+
+    /* Powered by */
+    .chat-footer {
+      text-align: center; padding: 0 16px 12px;
+      font-size: 0.68rem; color: rgba(255,255,255,0.2);
+    }
+    .chat-footer span { color: rgba(56,189,248,0.5); font-weight: 600; }
+
+    /* Light mode overrides */
+    html.light #chat-window {
+      background: rgba(245,248,255,0.96);
+      border-color: rgba(37,99,235,0.15);
+      box-shadow: 0 24px 80px rgba(37,99,235,0.15), 0 0 0 1px rgba(37,99,235,0.05);
+    }
+    html.light .chat-header {
+      background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(14,165,233,0.07));
+      border-bottom-color: rgba(37,99,235,0.1);
+    }
+    html.light .chat-header-name { color: #0d1b3e; }
+    html.light .msg.bot .msg-bubble {
+      background: #ffffff; color: #2d4070;
+      border-color: rgba(37,99,235,0.12);
+      box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+    }
+    html.light .typing-dots {
+      background: #fff; border-color: rgba(37,99,235,0.12);
+    }
+    html.light .typing-dots span { background: #7a9fc8; }
+    html.light .msg-time { color: rgba(0,0,0,0.2); }
+    html.light #chat-input {
+      background: rgba(37,99,235,0.05); border-color: rgba(37,99,235,0.15);
+      color: #0d1b3e;
+    }
+    html.light #chat-input::placeholder { color: #8ba0c4; }
+    html.light #chat-input:focus { border-color: rgba(37,99,235,0.4); background: #fff; }
+    html.light .chat-input-area { border-top-color: rgba(37,99,235,0.1); }
+    html.light .chat-header-close { background: rgba(37,99,235,0.08); color: #526388; }
+    html.light .qr-btn { background: rgba(37,99,235,0.07); color: #2563eb; border-color: rgba(37,99,235,0.2); }
+    html.light .qr-btn:hover { background: rgba(37,99,235,0.15); }
+    html.light .chat-footer { color: rgba(0,0,0,0.25); }
+
     /* ─── GLOW LINE ─── */
     .glow-line {
       height: 1px; background: linear-gradient(to right, transparent, #38bdf8, transparent);
@@ -883,6 +1118,58 @@
   <div id="cursor-trail"></div>
   <div id="cursor-ring"></div>
   <div id="cursor-dot"></div>
+
+  <!-- AI CHAT WIDGET -->
+  <div id="chat-widget">
+    <div id="chat-window">
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-header-info">
+          <div class="chat-header-name">Optima AI アシスタント</div>
+          <div class="chat-header-status">オンライン・今すぐ返信可能</div>
+        </div>
+        <button class="chat-header-close" onclick="toggleChat()">✕</button>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" id="chatMessages"></div>
+
+      <!-- Quick replies -->
+      <div class="quick-replies" id="quickReplies">
+        <button class="qr-btn" onclick="sendQuick('料金を教えて')">💰 料金プラン</button>
+        <button class="qr-btn" onclick="sendQuick('制作期間は？')">⏱ 納期について</button>
+        <button class="qr-btn" onclick="sendQuick('無料制作とは？')">🎁 無料制作とは</button>
+        <button class="qr-btn" onclick="sendQuick('実績を見たい')">📂 制作実績</button>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <input id="chat-input" type="text" placeholder="メッセージを入力..." autocomplete="off" />
+        <button id="chat-send" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="chat-footer">Powered by <span>OptimaWeb AI</span></div>
+    </div>
+
+    <!-- Toggle button -->
+    <button id="chat-toggle" onclick="toggleChat()">
+      <div id="chat-badge">1</div>
+      <span class="ct-icon-chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </span>
+      <span class="ct-icon-close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </span>
+    </button>
+  </div>
 
   <!-- BG ORBS -->
   <div class="orb orb-1"></div>
@@ -1210,7 +1497,7 @@
           <div class="pricing-body">
             <div class="pricing-tier">Light</div>
             <div class="pricing-price">
-              <span class="price-num">¥100,000</span>
+              <span class="price-num">¥80,000</span>
               <span class="price-unit">〜</span>
             </div>
             <div class="pricing-range">1〜3ページ</div>
@@ -1234,7 +1521,7 @@
           <div class="pricing-body">
             <div class="pricing-tier">Standard</div>
             <div class="pricing-price">
-              <span class="price-num">¥250,000</span>
+              <span class="price-num">¥200,000</span>
               <span class="price-unit">〜</span>
             </div>
             <div class="pricing-range">5〜10ページ</div>
@@ -1258,7 +1545,7 @@
           <div class="pricing-body">
             <div class="pricing-tier">Premium</div>
             <div class="pricing-price">
-              <span class="price-num">¥500,000</span>
+              <span class="price-num">¥450,000</span>
               <span class="price-unit">〜</span>
             </div>
             <div class="pricing-range">10ページ以上</div>
@@ -1671,6 +1958,105 @@
           });
         });
       });
+    })();
+
+    /* ── AI CHAT WIDGET ── */
+    (function() {
+      const win     = document.getElementById('chat-window');
+      const toggle  = document.getElementById('chat-toggle');
+      const msgs    = document.getElementById('chatMessages');
+      const input   = document.getElementById('chat-input');
+      const badge   = document.getElementById('chat-badge');
+      const qr      = document.getElementById('quickReplies');
+      let isOpen    = false;
+      let typingEl  = null;
+
+      const now = () => {
+        const d = new Date();
+        return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+      };
+
+      const BOT_RESPONSES = {
+        '料金を教えて':   'ご予算に合わせて3つのプランをご用意しています。\n\n💡 **Light** ¥80,000〜（1〜3P）\n⭐ **Standard** ¥200,000〜（5〜10P）\n🚀 **Premium** ¥450,000〜（10P以上）\n\nすべて修正3回・2週間サポート込みです！',
+        '制作期間は？':   'ランディングページは最短**3日〜**、コーポレートサイトは**2〜4週間**が目安です。\n\n急ぎのご依頼もお気軽にご相談ください⚡',
+        '無料制作とは？': 'OptimaWebでは、**ご購入前に実際のサイトを無料で制作**します！\n\n完成品を確認してから、気に入ったら購入。\n気に入らなければ**費用は一切かかりません**🎁',
+        '実績を見たい':   'コーポレート・飲食・医療・SaaS・美容など、**幅広い業種**の実績がございます。\n\nページ上部の「実績」セクションからご確認いただけます📂',
+        'default':        'ご質問ありがとうございます！\n担当スタッフがすぐに対応いたします。\n\nまずは無料相談フォームからお気軽にどうぞ✨',
+      };
+
+      function addMsg(text, type) {
+        const el = document.createElement('div');
+        el.className = `msg ${type}`;
+        const avatar = type === 'bot' ? '🤖' : '👤';
+        el.innerHTML = `
+          <div class="msg-avatar">${avatar}</div>
+          <div>
+            <div class="msg-bubble">${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')}</div>
+            <span class="msg-time">${now()}</span>
+          </div>`;
+        msgs.appendChild(el);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      function showTyping() {
+        typingEl = document.createElement('div');
+        typingEl.className = 'msg bot typing-indicator';
+        typingEl.innerHTML = `<div class="msg-avatar">🤖</div><div class="typing-dots"><span></span><span></span><span></span></div>`;
+        msgs.appendChild(typingEl);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      function hideTyping() {
+        if (typingEl) { typingEl.remove(); typingEl = null; }
+      }
+
+      function botReply(key) {
+        showTyping();
+        setTimeout(() => {
+          hideTyping();
+          addMsg(BOT_RESPONSES[key] || BOT_RESPONSES['default'], 'bot');
+        }, 1200 + Math.random() * 600);
+      }
+
+      window.sendQuick = function(text) {
+        addMsg(text, 'user');
+        qr.style.display = 'none';
+        botReply(text);
+      };
+
+      window.sendMessage = function() {
+        const text = input.value.trim();
+        if (!text) return;
+        addMsg(text, 'user');
+        input.value = '';
+        qr.style.display = 'none';
+        botReply('default');
+      };
+
+      window.toggleChat = function() {
+        isOpen = !isOpen;
+        win.classList.toggle('open', isOpen);
+        toggle.classList.toggle('open', isOpen);
+        if (isOpen) {
+          badge.style.display = 'none';
+          if (msgs.children.length === 0) {
+            setTimeout(() => {
+              showTyping();
+              setTimeout(() => {
+                hideTyping();
+                addMsg('こんにちは！👋 OptimaWebへようこそ。\nどのようなことでもお気軽にご相談ください。', 'bot');
+              }, 900);
+            }, 300);
+          }
+          setTimeout(() => input.focus(), 400);
+        }
+      };
+
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') window.sendMessage(); });
+
+      /* auto-show badge after 4s */
+      setTimeout(() => { if (!isOpen) badge.style.display = 'flex'; }, 4000);
+      badge.style.display = 'none';
     })();
 
     /* ── CUSTOM CURSOR ── */
